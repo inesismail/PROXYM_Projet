@@ -2,10 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "../../../../lib/mongo";
 import Quiz from "../../../../models/Quiz";
 
-<<<<<<< HEAD
-
-=======
->>>>>>> d887048 (second commit)
 // GET /api/quiz/[id] - Récupérer un quiz spécifique
 export async function GET(
   req: NextRequest,

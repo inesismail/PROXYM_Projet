@@ -12,7 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 // Define the QuizType interface based on your data structure
 interface QuizType {
@@ -37,18 +37,16 @@ export default function QuizzesPage() {
   const [activeQuiz, setActiveQuiz] = useState<QuizType | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
-<<<<<<< HEAD
-=======
   const [userAnswers, setUserAnswers] = useState<number[]>([]);
   const [score, setScore] = useState<number | null>(null);
->>>>>>> d887048 (second commit)
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Fetch quizzes from the API
-  const fetchQuizzes = async () => {
+  const fetchQuizzes = useCallback(async () => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
       const response = await fetch("/api/quiz");
       if (!response.ok) {
         throw new Error("Erreur lors de la récupération des quiz");
@@ -64,12 +62,12 @@ export default function QuizzesPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   // Load quizzes on component mount
   useEffect(() => {
     fetchQuizzes();
-  }, []);
+  }, [fetchQuizzes]);
 
   // Get color based on difficulty
   const getDifficultyColor = (difficulty: string): string => {
@@ -86,31 +84,54 @@ export default function QuizzesPage() {
   };
 
   // Start a quiz
-  const startQuiz = (quiz: QuizType) => {
+  const startQuiz = useCallback((quiz: QuizType) => {
     if (quiz.questions?.length > 0) {
       setActiveQuiz(quiz);
       setCurrentQuestionIndex(0);
       setSelectedAnswer("");
-<<<<<<< HEAD
-=======
       setUserAnswers([]);
       setScore(null);
->>>>>>> d887048 (second commit)
     } else {
       setError("Ce quiz n'a pas de questions valides.");
     }
-  };
+  }, []);
 
-  // Go to the next question
-  const handleNextQuestion = () => {
-<<<<<<< HEAD
-    if (activeQuiz && currentQuestionIndex < activeQuiz.questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setSelectedAnswer("");
-    } else if (activeQuiz) {
-      alert("Quiz terminé !");
-      setActiveQuiz(null);
-=======
+  // Calculate score
+  const calculateScore = useCallback((answers: number[], quiz: QuizType) => {
+    const correct = quiz.questions.reduce(
+      (acc, q, idx) => acc + (answers[idx] === q.correctAnswer ? 1 : 0),
+      0
+    );
+    return Math.round((correct / quiz.questions.length) * 100);
+  }, []);
+
+  // Save quiz score to the database
+  const saveQuizScore = useCallback(
+    async (quizId: string, score: number) => {
+      setIsSaving(true);
+      try {
+        await fetch(`/api/quiz/${quizId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            completed: true,
+            score: score,
+          }),
+        });
+        await fetchQuizzes();
+      } catch (err) {
+        console.error("Erreur lors de la sauvegarde du score:", err);
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [fetchQuizzes]
+  );
+
+  // Go to the next question or finish the quiz
+  const handleNextQuestion = useCallback(async () => {
     if (!activeQuiz) return;
     const currentQ = activeQuiz.questions[currentQuestionIndex];
     const selectedIndex = currentQ.options.findIndex(
@@ -121,32 +142,30 @@ export default function QuizzesPage() {
     setUserAnswers(updatedAnswers);
 
     if (currentQuestionIndex < activeQuiz.questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      setCurrentQuestionIndex((idx) => idx + 1);
       setSelectedAnswer(
         typeof updatedAnswers[currentQuestionIndex + 1] === "number"
           ? currentQ.options[updatedAnswers[currentQuestionIndex + 1]]
           : ""
       );
     } else {
-      let correct = 0;
-      activeQuiz.questions.forEach((q, idx) => {
-        if (updatedAnswers[idx] === q.correctAnswer) correct++;
-      });
-      const result = Math.round((correct / activeQuiz.questions.length) * 100);
+      const result = calculateScore(updatedAnswers, activeQuiz);
       setScore(result);
-      // Sauvegarder le score dans la base de données
-      saveQuizScore(activeQuiz._id, result);
->>>>>>> d887048 (second commit)
+      await saveQuizScore(activeQuiz._id, result);
     }
-  };
+  }, [
+    activeQuiz,
+    currentQuestionIndex,
+    selectedAnswer,
+    userAnswers,
+    calculateScore,
+    saveQuizScore,
+  ]);
 
   // Go to the previous question
-  const handlePreviousQuestion = () => {
+  const handlePreviousQuestion = useCallback(() => {
     if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(currentQuestionIndex - 1);
-<<<<<<< HEAD
-      setSelectedAnswer("");
-=======
+      setCurrentQuestionIndex((idx) => idx - 1);
       if (
         typeof userAnswers[currentQuestionIndex - 1] === "number" &&
         activeQuiz
@@ -160,26 +179,7 @@ export default function QuizzesPage() {
         setSelectedAnswer("");
       }
     }
-  };
-
-  // Fonction pour sauvegarder le score dans la base de données
-  const saveQuizScore = async (quizId: string, score: number) => {
-    try {
-      await fetch(`/api/quiz/${quizId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          completed: true,
-          score: score,
-        }),
-      });
-    } catch (err) {
-      console.error("Erreur lors de la sauvegarde du score:", err);
->>>>>>> d887048 (second commit)
-    }
-  };
+  }, [currentQuestionIndex, userAnswers, activeQuiz]);
 
   // Loading or error states
   if (isLoading) {
@@ -191,78 +191,78 @@ export default function QuizzesPage() {
   }
 
   // Active quiz view
-<<<<<<< HEAD
-  if (activeQuiz && activeQuiz.questions?.[currentQuestionIndex]) {
-=======
   if (
     activeQuiz &&
     activeQuiz.questions?.[currentQuestionIndex] &&
     score === null
   ) {
->>>>>>> d887048 (second commit)
     const currentQuestion = activeQuiz.questions[currentQuestionIndex];
     return (
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="max-w-2xl mx-auto space-y-8 p-6 bg-white rounded-xl shadow-lg">
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">
-              {activeQuiz.title || "Quiz sans titre"}
+            <h1 className="text-3xl font-bold text-indigo-700 mb-1">
+              {activeQuiz.title}
             </h1>
-            <p className="text-slate-600">
-              Question {currentQuestionIndex + 1} of{" "}
+            <span className="text-sm text-gray-500">
+              Question {currentQuestionIndex + 1} /{" "}
               {activeQuiz.questions.length}
-            </p>
+            </span>
           </div>
-          <Button variant="outline" onClick={() => setActiveQuiz(null)}>
+          <Button
+            variant="outline"
+            className="border-red-400 text-red-600 hover:bg-red-50"
+            onClick={() => setActiveQuiz(null)}
+          >
             Quitter le quiz
           </Button>
         </div>
 
-        <Card>
+        <Card className="border-2 border-indigo-200">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">
-                {currentQuestion.question || "Question indisponible"}
-              </CardTitle>
-              <div className="flex items-center gap-2 text-sm text-slate-600">
-                <Clock className="h-4 w-4" />
-                <span>{activeQuiz.timeLimit - 5 || 0} min restantes</span>
-              </div>
-            </div>
+            <CardTitle className="text-xl text-indigo-900">
+              {currentQuestion.question}
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4">
             <RadioGroup
               value={selectedAnswer}
               onValueChange={setSelectedAnswer}
+              className="space-y-2"
             >
-              {(currentQuestion.options?.length > 0
-                ? currentQuestion.options
-                : ["Aucune option disponible"]
-              ).map((option: string, index: number) => (
+              {currentQuestion.options.map((option, idx) => (
                 <div
-                  key={index}
-                  className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-slate-50"
+                  key={idx}
+                  className={`flex items-center p-3 rounded-lg border transition-colors ${
+                    selectedAnswer === option
+                      ? "border-indigo-500 bg-indigo-50"
+                      : "border-gray-200 hover:bg-gray-50"
+                  }`}
                 >
-                  <RadioGroupItem value={option} id={`option-${index}`} />
+                  <RadioGroupItem value={option} id={`option-${idx}`} />
                   <Label
-                    htmlFor={`option-${index}`}
-                    className="flex-1 cursor-pointer"
+                    htmlFor={`option-${idx}`}
+                    className="flex-1 cursor-pointer text-lg"
                   >
                     {option}
                   </Label>
                 </div>
               ))}
             </RadioGroup>
-
-            <div className="flex justify-between">
+            <div className="flex justify-between mt-6">
               <Button
                 variant="outline"
                 onClick={handlePreviousQuestion}
                 disabled={currentQuestionIndex === 0}
+                className="rounded-full px-6"
               >
                 Précédent
               </Button>
-              <Button disabled={!selectedAnswer} onClick={handleNextQuestion}>
+              <Button
+                disabled={!selectedAnswer || isSaving}
+                onClick={handleNextQuestion}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-8 shadow"
+              >
                 {currentQuestionIndex === activeQuiz.questions.length - 1
                   ? "Terminer"
                   : "Suivant"}
@@ -270,28 +270,45 @@ export default function QuizzesPage() {
             </div>
           </CardContent>
         </Card>
+        <div className="w-full bg-gray-200 rounded-full h-2 mt-4">
+          <div
+            className="bg-indigo-500 h-2 rounded-full transition-all"
+            style={{
+              width: `${
+                ((currentQuestionIndex + 1) / activeQuiz.questions.length) * 100
+              }%`,
+            }}
+          ></div>
+        </div>
       </div>
     );
   }
 
-<<<<<<< HEAD
-=======
   // Affichage du score à la fin du quiz
   if (activeQuiz && score !== null) {
     return (
-      <div className="max-w-2xl mx-auto text-center space-y-6">
-        <h1 className="text-2xl font-bold text-slate-900">Quiz terminé !</h1>
-        <p className="text-lg">
-          Votre score : <span className="font-bold">{score}%</span>
-        </p>
-        <Button onClick={() => setActiveQuiz(null)}>
+      <div className="max-w-xl mx-auto text-center space-y-8 p-8 bg-white rounded-xl shadow-lg">
+        <h1 className="text-3xl font-bold text-green-700">Quiz terminé !</h1>
+        <div className="flex flex-col items-center space-y-2">
+          <span className="text-5xl font-extrabold text-indigo-600">
+            {score}%
+          </span>
+          <span className="text-lg text-gray-600">
+            {score >= activeQuiz.passingScore
+              ? "Bravo, vous avez réussi !"
+              : "Dommage, essayez encore !"}
+          </span>
+        </div>
+        <Button
+          className="mt-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-8"
+          onClick={() => setActiveQuiz(null)}
+        >
           Retour à la liste des quiz
         </Button>
       </div>
     );
   }
 
->>>>>>> d887048 (second commit)
   // Quiz list view
   return (
     <div className="space-y-8">

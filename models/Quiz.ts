@@ -52,8 +52,6 @@ const quizSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
-<<<<<<< HEAD
-=======
   score: {
     type: Number,
     default: null,
@@ -62,7 +60,6 @@ const quizSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
->>>>>>> d887048 (second commit)
 });
 
 // Mettre à jour le champ updatedAt avant chaque sauvegarde
