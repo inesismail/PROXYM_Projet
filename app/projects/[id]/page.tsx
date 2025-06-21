@@ -1,129 +1,168 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { CheckCircle, Clock, Code2, Target } from "lucide-react"
+"use client";
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { CheckCircle, Clock, Code2, Target } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import BackendProgressTracker from "@/components/backend-progress-tracker";
 
-const projectData = {
-  id: 1,
-  title: "Build a React Todo App",
-  description:
-    "Create a fully functional todo application using React hooks and local storage. This project will teach you the fundamentals of React development, state management, and modern JavaScript practices.",
-  difficulty: "Beginner",
-  duration: "2-3 hours",
-  technologies: ["React", "JavaScript", "CSS", "HTML"],
-  objectives: [
-    "Set up a React project with Create React App",
-    "Implement CRUD operations for todos",
-    "Use React hooks (useState, useEffect) for state management",
-    "Style components with CSS modules or styled-components",
-    "Implement local storage for data persistence",
-    "Add filtering and sorting functionality",
-    "Create responsive design for mobile devices",
-    "Write unit tests for components",
-  ],
-  prerequisites: [
-    "Basic knowledge of JavaScript ES6+",
-    "Understanding of HTML and CSS",
-    "Familiarity with React concepts (components, props, state)",
-  ],
-  resources: ["React Documentation", "MDN Web Docs", "CSS Grid and Flexbox Guide", "Testing Library Documentation"],
-}
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  ChevronDown,
+  Download,
+  Github,
+  BookOpen,
+  Copy,
+  ListTodo,
+} from "lucide-react";
 
-const getDifficultyColor = (difficulty: string) => {
-  switch (difficulty) {
-    case "Beginner":
-      return "bg-green-100 text-green-800 border-green-200"
-    case "Intermediate":
-      return "bg-yellow-100 text-yellow-800 border-yellow-200"
-    case "Advanced":
-      return "bg-red-100 text-red-800 border-red-200"
-    default:
-      return "bg-gray-100 text-gray-800 border-gray-200"
-  }
+interface Project {
+  _id: string;
+  title: string;
+  description: string;
+  difficulty: string;
+  duration: string;
+  technologies: string[];
+  objectives: string[];
+  prerequisites: string[];
+  resources: string[];
+  githubUrl?: string;
+  demoUrl?: string;
 }
 
 export default function ProjectDetailsPage() {
+  const params = useParams();
+  const [project, setProject] = useState<Project | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showInstructions, setShowInstructions] = useState(false);
+  const [showProgressTracker, setShowProgressTracker] = useState(false);
+
+  useEffect(() => {
+    async function fetchProject() {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/projects/${params.id}`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch project");
+        }
+        const data = await response.json();
+        setProject(data);
+      } catch (err: any) {
+        setError(err.message);
+        console.error("Error fetching project:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (params.id) {
+      fetchProject();
+    }
+  }, [params.id]);
+
+  function getDifficultyColor(difficulty: string) {
+    switch (difficulty) {
+      case "Beginner":
+        return "bg-green-100 text-green-800";
+      case "Intermediate":
+        return "bg-yellow-100 text-yellow-800";
+      case "Advanced":
+        return "bg-red-100 text-red-800";
+      default:
+        return "";
+    }
+  }
+
+  if (loading)
+    return <div className="text-center py-10">Chargement du projet...</div>;
+  if (error)
+    return (
+      <div className="text-center py-10 text-red-500">Erreur: {error}</div>
+    );
+  if (!project)
+    return <div className="text-center py-10">Projet non trouvé</div>;
+
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto space-y-8 p-4">
       {/* Header */}
       <div className="space-y-4">
         <div className="flex items-start justify-between">
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold text-slate-900">{projectData.title}</h1>
-            <p className="text-lg text-slate-600">{projectData.description}</p>
+            <h1 className="text-3xl font-bold text-slate-900">
+              {project.title}
+            </h1>
+            <p className="text-lg text-slate-600">{project.description}</p>
           </div>
-          <Badge className={getDifficultyColor(projectData.difficulty)}>{projectData.difficulty}</Badge>
-        </div>
-
-        <div className="flex items-center gap-6 text-sm text-slate-600">
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            <span>{projectData.duration}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Target className="h-4 w-4" />
-            <span>{projectData.objectives.length} objectives</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Code2 className="h-4 w-4" />
-            <span>{projectData.technologies.length} technologies</span>
-          </div>
+          <Badge className={getDifficultyColor(project.difficulty)}>
+            {project.difficulty}
+          </Badge>
         </div>
       </div>
 
-      {/* Technologies */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Code2 className="h-5 w-5" />
-            Technologies You'll Use
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {projectData.technologies.map((tech) => (
-              <Badge key={tech} variant="secondary" className="text-sm px-3 py-1">
-                {tech}
-              </Badge>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Project details */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Technologies */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Code2 className="h-5 w-5" />
+              Technologies
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {project.technologies.map((tech, index) => (
+                <Badge key={index} variant="outline">
+                  {tech}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* Learning Objectives */}
+        {/* Duration */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Durée estimée
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>{project.duration}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Objectives */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Target className="h-5 w-5" />
-            Learning Objectives
+            Objectifs
           </CardTitle>
-          <CardDescription>What you'll accomplish by completing this project</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3">
-            {projectData.objectives.map((objective, index) => (
-              <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-slate-50">
-                <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                <span className="text-sm">{objective}</span>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Prerequisites */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Prerequisites</CardTitle>
-          <CardDescription>What you should know before starting this project</CardDescription>
+          <CardDescription>Ce que vous allez apprendre</CardDescription>
         </CardHeader>
         <CardContent>
           <ul className="space-y-2">
-            {projectData.prerequisites.map((prerequisite, index) => (
-              <li key={index} className="flex items-start gap-2 text-sm">
-                <span className="text-blue-600 mt-1">•</span>
-                {prerequisite}
+            {project.objectives.map((objective, index) => (
+              <li key={index} className="flex items-start gap-2">
+                <CheckCircle className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
+                <span>{objective}</span>
               </li>
             ))}
           </ul>
@@ -131,35 +170,166 @@ export default function ProjectDetailsPage() {
       </Card>
 
       {/* Resources */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Helpful Resources</CardTitle>
-          <CardDescription>Documentation and guides to help you succeed</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ul className="space-y-2">
-            {projectData.resources.map((resource, index) => (
-              <li key={index} className="flex items-start gap-2 text-sm">
-                <span className="text-blue-600 mt-1">•</span>
-                <span className="text-blue-600 hover:underline cursor-pointer">{resource}</span>
-              </li>
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
+      {project.resources && project.resources.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Ressources utiles</CardTitle>
+            <CardDescription>
+              Documentation et guides pour vous aider
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              {project.resources.map((resource, index) => (
+                <li key={index} className="flex items-start gap-2 text-sm">
+                  <span className="text-blue-600 mt-1">•</span>
+                  <span className="text-blue-600 hover:underline cursor-pointer">
+                    {resource}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Instructions détaillées (conditionnellement affichées) */}
+      {showInstructions && (
+        <Card className="mt-6 border-blue-200 bg-blue-50">
+          <CardHeader>
+            <CardTitle>Instructions pour démarrer</CardTitle>
+            <CardDescription>
+              Suivez ces étapes pour commencer le projet
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <h3 className="font-semibold mb-2">1. Cloner le dépôt</h3>
+              <div className="bg-slate-800 text-white p-3 rounded-md font-mono text-sm">
+                git clone {project.githubUrl || "[URL du dépôt GitHub]"}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="font-semibold mb-2">
+                2. Installer les dépendances
+              </h3>
+              <div className="bg-slate-800 text-white p-3 rounded-md font-mono text-sm">
+                cd [nom-du-projet]
+                <br />
+                npm install
+              </div>
+            </div>
+
+            <div>
+              <h3 className="font-semibold mb-2">3. Lancer le projet</h3>
+              <div className="bg-slate-800 text-white p-3 rounded-md font-mono text-sm">
+                npm run dev
+              </div>
+            </div>
+
+            <div>
+              <h3 className="font-semibold mb-2">
+                4. Ouvrir dans le navigateur
+              </h3>
+              <p>
+                Accédez à{" "}
+                <span className="font-mono bg-slate-100 px-2 py-1 rounded">
+                  http://localhost:3000
+                </span>{" "}
+                dans votre navigateur
+              </p>
+            </div>
+
+            <div className="pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowInstructions(false)}
+              >
+                Masquer les instructions
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Action Buttons */}
       <div className="flex gap-4 pt-4">
-        <Button size="lg" className="flex-1">
-          Start Project
-        </Button>
-        <Button variant="outline" size="lg">
-          Save for Later
-        </Button>
-        <Button variant="outline" size="lg">
-          Share Project
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="lg" className="flex-1">
+              Démarrer le projet <ChevronDown className="ml-2 h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56">
+            <DropdownMenuItem
+              onClick={() => setShowInstructions(!showInstructions)}
+            >
+              <BookOpen className="mr-2 h-4 w-4" />
+              <span>Voir les instructions</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => setShowProgressTracker(!showProgressTracker)}
+            >
+              <ListTodo className="mr-2 h-4 w-4" />
+              <span>Gérer les étapes</span>
+            </DropdownMenuItem>
+            {project.githubUrl && (
+              <DropdownMenuItem
+                onClick={() => window.open(project.githubUrl, "_blank")}
+              >
+                <Github className="mr-2 h-4 w-4" />
+                <span>Cloner le dépôt</span>
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem
+              onClick={() => {
+                navigator.clipboard.writeText(
+                  `git clone ${project.githubUrl || "URL_DU_REPO"}`
+                );
+                alert("Commande copiée dans le presse-papier!");
+              }}
+            >
+              <Copy className="mr-2 h-4 w-4" />
+              <span>Copier la commande git</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() =>
+                window.open(`/projects/${project._id}/download`, "_blank")
+              }
+            >
+              <Download className="mr-2 h-4 w-4" />
+              <span>Télécharger les fichiers</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        {project.githubUrl && (
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={() => window.open(project.githubUrl, "_blank")}
+          >
+            GitHub
+          </Button>
+        )}
+        {project.demoUrl && (
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={() => window.open(project.demoUrl, "_blank")}
+          >
+            Démo
+          </Button>
+        )}
       </div>
+
+      {/* Gestionnaire d'étapes du projet */}
+      {showProgressTracker && (
+        <BackendProgressTracker
+          projectId={project._id}
+          projectTitle={project.title}
+        />
+      )}
     </div>
-  )
+  );
 }
